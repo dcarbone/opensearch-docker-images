@@ -12,7 +12,7 @@
 
 
 ########################### Stage 0 ########################
-FROM amazonlinux:2 AS linux_stage_0
+FROM amazonlinux:2022 AS linux_stage_0
 
 ARG UID=1000
 ARG GID=1000
@@ -25,7 +25,7 @@ ARG OS_VERSION=2.5.0
 # Update packages
 # Install the tools we need: tar and gzip to unpack the OpenSearch tarball, and shadow-utils to give us `groupadd` and `useradd`.
 # Install which to allow running of securityadmin.sh
-RUN yum update -y && yum install -y tar gzip shadow-utils which && yum clean all
+RUN yum update -y && yum install -y --allowerasing tar gzip gnupg2 shadow-utils which && yum clean all
 
 # Create an opensearch user, group, and directory
 RUN groupadd -g $GID opensearch && \
@@ -44,9 +44,9 @@ RUN set -eux ; \
     esac ; \
     curl --retry 10 -S -L --output $TEMP_DIR/opensearch.tar.gz https://artifacts.opensearch.org/releases/bundle/opensearch/$OS_VERSION/opensearch-$OS_VERSION-linux-$cur_arch.tar.gz; \
     curl --output $TEMP_DIR/opensearch.pgp https://artifacts.opensearch.org/publickeys/opensearch.pgp; \
-    gpg --import $TEMP_DIR/opensearch.pgp; \
+    gpg --no-tty --import $TEMP_DIR/opensearch.pgp; \
     curl --output $TEMP_DIR/opensearch.tar.gz.sig https://artifacts.opensearch.org/releases/bundle/opensearch/$OS_VERSION/opensearch-$OS_VERSION-linux-$cur_arch.tar.gz.sig; \
-    gpg --verify $TEMP_DIR/opensearch.tar.gz.sig $TEMP_DIR/opensearch.tar.gz;
+    gpg --no-tty --verify $TEMP_DIR/opensearch.tar.gz.sig $TEMP_DIR/opensearch.tar.gz;
 
 RUN tar --warning=no-timestamp -zxf $TEMP_DIR/opensearch.tar.gz -C $OPENSEARCH_HOME --strip-components=1 && \
     mkdir -p $OPENSEARCH_HOME/data && chown -Rv $UID:$GID $OPENSEARCH_HOME/data && \
@@ -58,7 +58,7 @@ COPY bin/* $OPENSEARCH_HOME/
 RUN if [[ -d $PERFORMANCE_ANALYZER_PLUGIN_CONFIG_DIR ]] ; then mv $OPENSEARCH_PATH_CONF/performance-analyzer.properties $PERFORMANCE_ANALYZER_PLUGIN_CONFIG_DIR/ ; fi
 ########################### Stage 1 ########################
 # Copy working directory to the actual release docker images
-FROM amazonlinux:2
+FROM amazonlinux:2022
 
 ARG UID=1000
 ARG GID=1000
